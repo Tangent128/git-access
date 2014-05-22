@@ -29,8 +29,10 @@
 			absolute path to git-receive-pack command
 --]]
 
+local posix = require "posix"
+
 local function die(...)
-	print(...)
+	posix.write(2, table.concat({...}, " ") .. "\n")
 	os.exit(1)
 end
 
@@ -47,60 +49,16 @@ return function(a)
 	elseif not a.receive then
 		die("[git-access]", "Need a path to git-receive-pack")
 	end
-end
-
---[[
--- parse options
-local argv = {...}
-local names = {}
-local repo = nil
-local mode = nil
-
-local i = 1
-local function popArg()
-	if not argv[i + 1] then
-		print([[Expected argument after "]]..argv[i]..[["]])
-		os.exit(1)
-	end
-	i = i + 1
-	return argv[i]
-end
-local function onlyOne(existing)
-	if existing then
-		print([[Argument "]]..argv[i]..[[" can only appear once or conflicts with previous arguments.]])
-		os.exit(1)
-	end
-end
-
-while i <= #argv do
-	local arg = argv[i]
 	
-	if arg == "-u" then
-		names[#names + 1] = popArg()
-	elseif arg == "-g" then
-		onlyOne(repo)
-		repo = popArg()
-	elseif arg == "--upload-pack" then
-		onlyOne(mode)
-		mode = "pull"
-	elseif arg == "--receive-pack" then
-		onlyOne(mode)
-		mode = "push"
-	else
-		print([[Unknown switch "]]..argv[i]..[["]])
-		os.exit(1)
-	end
+	die("git-access stub is satisfied\n",
+	#a, a[1] or "", a[2] or "", a[3] or "", "\n",
+	"repo:", a.repo, "\n",
+	"mode:", a.action)
 	
-	i = i + 1
-end
+	--look for info/git-access file
+	
+	--match against git-access rules
 
-if not (repo and mode) then
-	print("Both repo and mode need to be specified.")
-	os.exit(1)
+	-- exec correct command
+	
 end
-
-print "git-access stub is satisfied"
-print(#names, names[1], names[2], names[3])
-print("repo:", repo)
-print("mode:", mode)
-]]

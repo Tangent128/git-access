@@ -25,8 +25,10 @@
 			absolute path to git-receive-pack command
 --]]
 
+local posix = require "posix"
+
 local function die(...)
-	print(...)
+	posix.write(2, table.concat({...}, " ") .. "\n")
 	os.exit(1)
 end
 
@@ -38,6 +40,29 @@ return function(a)
 	
 	--parse command
 	local cmd = os.getenv("SSH_ORIGINAL_COMMAND")
+	local mode, repo = "pull", ""
 	
-	die("OIC:", cmd)
+	local prog, s_repo = cmd:match [[^([-%w]+)%s+'(.+)'$]]
+	
+	if not prog then
+		die("[git-ssh-access]", "Malformatted command was sent:", cmd)
+	elseif prog == "git-upload-pack" then
+		mode = "pull"
+	elseif prog == "git-receive-pack" then
+		mode = "push"
+	else
+		die("[git-ssh-access]", "Unknown command was sent:", cmd)
+	end
+	
+	--TODO: check repo parameter is escaped right
+	local repo = s_repo
+
+	--hand off processing
+	require "git-access" {
+		repo = repo,
+		action = mode,
+		upload = a.upload,
+		receive = a.receive,
+		unpack(a)
+	}
 end
