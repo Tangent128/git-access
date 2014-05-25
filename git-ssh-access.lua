@@ -39,7 +39,7 @@ return function(a)
 	end
 	
 	--parse command
-	local cmd = os.getenv("SSH_ORIGINAL_COMMAND")
+	local cmd = os.getenv("SSH_ORIGINAL_COMMAND") or ""
 	local mode, repo = "pull", ""
 	
 	local prog, s_repo = cmd:match [[^([-%w]+)%s+'(.+)'$]]
@@ -54,8 +54,10 @@ return function(a)
 		die("[git-ssh-access]", "Unknown command was sent:", cmd)
 	end
 	
-	--TODO: check repo parameter is escaped right
+	--unescape repo parameter
 	local repo = s_repo
+	repo = repo:gsub("'\\''", "'")
+	repo = repo:gsub("'\\!'", "!")
 
 	--hand off processing
 	require "git-access" {

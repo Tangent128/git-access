@@ -29,11 +29,76 @@
 			absolute path to git-receive-pack command
 --]]
 
+local ACCESS_FILE = "/info/git-access"
+
 local posix = require "posix"
 
 local function die(...)
 	posix.write(2, table.concat({...}, " ") .. "\n")
 	os.exit(1)
+end
+
+local function debug(...)
+	posix.write(2, table.concat({...}, " ") .. "\n")
+end
+
+local access = {}
+local function selected(matchName)
+	for _, name in pairs(access._names) do
+		if name == matchName then
+			return true
+		end
+	end
+	return false
+end
+
+--[[
+	ACCESS CONTROL LEVELS
+--]]
+
+function access.deny(action, repo)
+	die("[git-access]", "Access denied.")
+end
+
+function access.ro(action, repo)
+	die("[git-access]", "Not implemented")
+end
+
+--[[
+	End Access Control Levels
+--]]
+
+local exists = posix.access
+local function readfile(path)
+	local f = io.open(path)
+	local s = f:read "*a"
+	f:close()
+	return s
+end
+
+local function loadfile_compat(path, env)
+	local chunk, err = loadfile(path, "t", env)
+	if not chunk then
+		die("[git-access]", err)
+	end
+	if setfenv then
+		setfenv(chunk, env)
+	end
+	return chunk
+end
+
+-- check that a path is a valid Git repo, then try to load access file
+-- note: a minimal git-repository contains a HEAD,
+-- an objects directory, and a refs directory (directories may
+-- be empty, but must exist)
+local function tryAccessFile(repo, env)
+	if exists(repo .. "/refs")
+	and exists(repo .. "/objects")
+	and exists(repo .. "/HEAD")
+	then
+		return loadfile_compat(repo .. ACCESS_FILE, env)
+	end
+	return nil
 end
 
 return function(a)
@@ -50,15 +115,41 @@ return function(a)
 		die("[git-access]", "Need a path to git-receive-pack")
 	end
 	
-	die("git-access stub is satisfied\n",
+	debug("git-access stub is satisfied\n",
 	#a, a[1] or "", a[2] or "", a[3] or "", "\n",
 	"repo:", a.repo, "\n",
 	"mode:", a.action)
-	
-	--look for info/git-access file
-	
-	--match against git-access rules
 
-	-- exec correct command
+	-- setup rule env
+	local policy = access.deny
+	
+	local names = {}
+	for i = 1, #a do
+		names[a[i]] = a[i]
+	end
+	
+	local env = {}
+	for name, func in pairs(access) do
+		env[name] = function(user)
+			if names[user] then
+				policy = func
+			end
+		end
+	end
+	
+	-- look for info/git-access file
+	local rules =
+		tryAccessFile(a.repo .. "/.git", env) or
+		tryAccessFile(a.repo, env) or
+		die("[git-access]", "Not a git repo:", a.repo)
+	
+	-- match against git-access rules
+	local ok, err = pcall(rules)
+	if not ok then
+		die("[git-access]", "Error interpreting access rules.")
+	end
+
+	-- exec command if policy allows
+	policy(a.action, a.repo)
 	
 end
