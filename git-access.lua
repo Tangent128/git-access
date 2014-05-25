@@ -56,12 +56,27 @@ end
 	ACCESS CONTROL LEVELS
 --]]
 
-function access.deny(action, repo)
+function access.deny(args)
 	die("[git-access]", "Access denied.")
 end
 
-function access.ro(action, repo)
-	die("[git-access]", "Not implemented")
+function access.ro(args)
+	if args.action == "pull" then
+		local ok, err = posix.exec(args.upload, args.repo)
+		die("[git-access]", err)
+	end
+	die("[git-access]", "You have read-only access.")
+end
+
+function access.rw(args)
+	if args.action == "pull" then
+		local ok, err = posix.exec(args.upload, args.repo)
+		die("[git-access]", err)
+	elseif args.action == "push" then
+		local ok, err = posix.exec(args.receive, args.repo)
+		die("[git-access]", err)
+	end
+	die("[git-access]", "????", action)
 end
 
 --[[
@@ -69,12 +84,6 @@ end
 --]]
 
 local exists = posix.access
-local function readfile(path)
-	local f = io.open(path)
-	local s = f:read "*a"
-	f:close()
-	return s
-end
 
 local function loadfile_compat(path, env)
 	local chunk, err = loadfile(path, "t", env)
@@ -115,11 +124,8 @@ return function(a)
 		die("[git-access]", "Need a path to git-receive-pack")
 	end
 	
-	debug("git-access stub is satisfied\n",
-	#a, a[1] or "", a[2] or "", a[3] or "", "\n",
-	"repo:", a.repo, "\n",
-	"mode:", a.action)
-
+	a.repo = posix.realpath(a.repo)
+	
 	-- setup rule env
 	local policy = access.deny
 	
@@ -150,6 +156,6 @@ return function(a)
 	end
 
 	-- exec command if policy allows
-	policy(a.action, a.repo)
+	policy(a)
 	
 end
