@@ -88,7 +88,7 @@ local exists = posix.access
 local function loadfile_compat(path, env)
 	local chunk, err = loadfile(path, "t", env)
 	if not chunk then
-		die("[git-access]", "Error interpreting access rules.")
+		die("[git-access]", "Error reading access rules.")
 	end
 	if setfenv then
 		setfenv(chunk, env)
@@ -152,7 +152,7 @@ return function(a)
 	-- match against git-access rules
 	local ok, err = pcall(rules)
 	if not ok then
-		die("[git-access]", "Error interpreting access rules.")
+		die("[git-access]", "Error reading access rules.")
 	end
 
 	-- exec command if policy allows
