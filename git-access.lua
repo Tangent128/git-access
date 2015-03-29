@@ -88,7 +88,7 @@ local exists = posix.access
 local function loadfile_compat(path, env)
 	local chunk, err = loadfile(path, "t", env)
 	if not chunk then
-		die("[git-access]", err)
+		die("[git-access]", "Error interpreting access rules.")
 	end
 	if setfenv then
 		setfenv(chunk, env)
@@ -124,7 +124,7 @@ return function(a)
 		die("[git-access]", "Need a path to git-receive-pack")
 	end
 	
-	a.repo = posix.realpath(a.repo)
+	a.repo = posix.realpath(a.repo) or die("[git-access]", "Not a git repo:", a.repo)
 	
 	-- setup rule env
 	local policy = access.deny

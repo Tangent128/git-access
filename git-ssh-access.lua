@@ -26,6 +26,7 @@
 --]]
 
 local posix = require "posix"
+local unpack = table.unpack or unpack
 
 local function die(...)
 	posix.write(2, table.concat({...}, " ") .. "\n")

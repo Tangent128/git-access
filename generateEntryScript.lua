@@ -1,4 +1,6 @@
 
+assert(require "git-ssh-access")
+
 function die(msg)
 	io.stderr:write(msg.."\n")
 	os.exit(1)
@@ -11,14 +13,7 @@ function which(cmd)
 	return path
 end
 
-function printTable(t)
-	for k,v in pairs(t) do
-		print(k, v)
-	end
-end
-
-local scriptTmpl = [[
-#!%s
+local scriptTmpl = [[#!%s
 
 package.path = "%s"
 package.cpath = "%s"
