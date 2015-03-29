@@ -32,7 +32,14 @@ However, any user with push rights can trigger the associated git hooks,
 which raises a concern if they can (through other means) write to a
 location that the git-access user can read.
 
-It is **highly** recommended to create a dedicated git user.
+I try to mitigate that by requiring that the git-access file be owned by
+the git-access user, hopefully preventing creating a "fake repository".
+
+Some error messages may leak the existance or nonexistance of a given
+repository, even if access is denied. I will probably make them more
+vague in the future.
+
+In any case, it is **highly** recommended to create a dedicated git user.
 
 ## Generating the entry script
 
