@@ -32,6 +32,7 @@
 local ACCESS_FILE = "/info/git-access"
 
 local posix = require "posix"
+local currentUser = posix.getuid()
 
 local function die(...)
 	posix.write(2, table.concat({...}, " ") .. "\n")
@@ -85,6 +86,16 @@ end
 
 local exists = posix.access
 
+local function owns(path)
+	local stat = posix.stat(path)
+	if stat then
+		local fileOwner = stat.uid
+		return fileOwner == currentUser
+	else
+		return false
+	end
+end
+
 local function loadfile_compat(path, env)
 	local chunk, err = loadfile(path, "t", env)
 	if not chunk then
@@ -100,12 +111,17 @@ end
 -- note: a minimal git-repository contains a HEAD,
 -- an objects directory, and a refs directory (directories may
 -- be empty, but must exist)
+-- also confirm that the current user is the owner of the access file,
+-- to avoid a confused deputy.
 local function tryAccessFile(repo, env)
+	local accessPath = repo .. ACCESS_FILE
+
 	if exists(repo .. "/refs")
 	and exists(repo .. "/objects")
 	and exists(repo .. "/HEAD")
+	and owns(accessPath)
 	then
-		return loadfile_compat(repo .. ACCESS_FILE, env)
+		return loadfile_compat(accessPath, env)
 	end
 	return nil
 end
@@ -124,7 +140,8 @@ return function(a)
 		die("[git-access]", "Need a path to git-receive-pack")
 	end
 	
-	a.repo = posix.realpath(a.repo) or die("[git-access]", "Not a git repo:", a.repo)
+	local givenRepoName = a.repo
+	a.repo = posix.realpath(a.repo) or die("[git-access]", "Not a git repo:", givenRepoName)
 	
 	-- setup rule env
 	local policy = access.deny
@@ -147,7 +164,7 @@ return function(a)
 	local rules =
 		tryAccessFile(a.repo .. "/.git", env) or
 		tryAccessFile(a.repo, env) or
-		die("[git-access]", "Not a git repo:", a.repo)
+		die("[git-access]", "Not a git repo:", givenRepoName)
 	
 	-- match against git-access rules
 	local ok, err = pcall(rules)
