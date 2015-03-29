@@ -35,7 +35,7 @@ location that the git-access user can read.
 I try to mitigate that by requiring that the git-access file be owned by
 the git-access user, hopefully preventing creating a "fake repository".
 
-Some error messages may leak the existance or nonexistance of a given
+Some error messages may leak the existence or nonexistence of a given
 repository, even if access is denied. I will probably make them more
 vague in the future.
 
@@ -43,7 +43,7 @@ In any case, it is **highly** recommended to create a dedicated git user.
 
 ## Generating the entry script
 
-For security, the script used as the SSH forced command schould have
+For security, the script used as the SSH forced command should have
 all paths be absolute. As these differ from OS to OS, use `generateEntryScript.lua`
 to generate the entry script.
 
